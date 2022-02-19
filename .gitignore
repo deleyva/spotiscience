@@ -1,0 +1,6 @@
+venv
+.cache
+./spotiscience/credentials.py
+.vscode
+.ipynb_checkpoints
+__pycache__
