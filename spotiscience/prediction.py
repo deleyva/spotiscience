@@ -69,13 +69,13 @@ class SpotiSciencePredicter():
         if "english" in lang:
             mytokens = self.NLPENGLISH(lyric)
             mytokens = [ word.lemma_.lower() if word.lemma_ != "-PRON-" else word.lower_ for word in mytokens]
-            mytokens = [ word for word in mytokens if word not in self.STOPWORDSENGLISH and word not in self.PUNTUACTION] 
+            mytokens = [ word for word in mytokens if word not in self.STOPWORDSENGLISH and word not in self.PUNTUACTION]
         if "spanish" in lang:
             mytokens = self.NLPSPANISH(lyric)
             mytokens = [ word.lemma_.lower() if word.lemma_ != "-PRON-" else word.lower_ for word in mytokens]
             mytokens = [ word for word in mytokens if word not in self.STOPWORDSSPANISH and word not in self.PUNTUACTION] 
-        
-        mytokens = " ".join([i for i in mytokens])
+
+        mytokens = " ".join(list(mytokens))
         return mytokens
 
     def __inner__lyric_vectorizer(self,lyrics,stop_words,n_grams):
@@ -157,8 +157,7 @@ class SpotiSciencePredicter():
         processed_lyric = [self.__inner__spacy_tokenizer(lyric=sentence,lang=lang) for sentence in lyric_list]
         vectorizer, data_vectorized = self.__inner__lyric_vectorizer(processed_lyric,stop_words=stopwords,n_grams=n_grams)
         trained_model = self.__train__model(data_vectorized,modelname=model,num_topics=n_topics)
-        topics = self.__inner__selected_topics(trained_model,vectorizer,top_n=top_n)
-        return topics
+        return self.__inner__selected_topics(trained_model,vectorizer,top_n=top_n)
 
 
     #---------------
@@ -221,5 +220,5 @@ class SpotiSciencePredicter():
                     similarity = sorted(similarity ,key =lambda tup:tup[2])
                     similarity = [tup for tup in similarity if tup[2]>0]
 
-            similar_songs[object_name] = similarity[0:top_n]
+            similar_songs[object_name] = similarity[:top_n]
         return similar_songs

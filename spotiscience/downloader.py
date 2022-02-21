@@ -64,8 +64,7 @@ class SpotiScienceDownloader():
         Return the object api authorization for downloading  spotify global music data
         """
         manager = SpotifyClientCredentials(self.client_id,self.client_secret)
-        sp = spotipy.Spotify(client_credentials_manager=manager)
-        return sp
+        return spotipy.Spotify(client_credentials_manager=manager)
 
     def __inner__auth_spotify_user_music(self,scope):
         """
@@ -75,8 +74,7 @@ class SpotiScienceDownloader():
         scope: str - the spotify API authorization scope
         """
         auth_manager = SpotifyOAuth(scope=scope,client_id=self.client_id,client_secret=self.client_secret,username=self.user_id, redirect_uri=self.redirect_url)
-        sp = spotipy.Spotify(auth_manager=auth_manager)
-        return sp 
+        return spotipy.Spotify(auth_manager=auth_manager) 
 
     def __inner__get_albums_id(self,artist_id):
         """
@@ -85,12 +83,9 @@ class SpotiScienceDownloader():
         ----------
         artist_id: str - the spotify id of the artist
         """
-        album_ids = []
         sp = self.__inner__auth_spotify_music()
         results = sp.artist_albums(artist_id)
-        for album in results['items']:
-            album_ids.append(album['id'])
-        return album_ids
+        return [album['id'] for album in results['items']]
 
     def __inner__get_album_songs_id(self,album_id):
         """
@@ -99,12 +94,9 @@ class SpotiScienceDownloader():
         ----------
         album_id: str - the spotify id of the album
         """
-        song_ids = []
         sp = self.__inner__auth_spotify_music()
         results = sp.album_tracks(album_id,offset=0)
-        for songs in results['items']:
-            song_ids.append(songs['id'])
-        return song_ids
+        return [songs['id'] for songs in results['items']]
 
     def get_song_features(self,song_id):
         """
@@ -120,8 +112,6 @@ class SpotiScienceDownloader():
 
         if "https" in song_id:
             song_id = self.__inner__clean_spotify_id(song_id)
-
-        FEATURES = {}
 
         sp = self.__inner__auth_spotify_music()
         meta = sp.track(song_id)
@@ -147,26 +137,26 @@ class SpotiScienceDownloader():
         key = feature[0]['key']
         time_signature = feature[0]['time_signature']
 
-        FEATURES['id']= ids
-        FEATURES['name']= name
-        FEATURES['artist']= artist
-        FEATURES['album']= album
-        FEATURES['release_date']= release_date
-        FEATURES['popularity']= popularity
-        FEATURES['length']= length
-        FEATURES['acousticness']= acousticness
-        FEATURES['danceability']= danceability
-        FEATURES['energy']= energy
-        FEATURES['instrumentalness']= instrumentalness
-        FEATURES['liveness']= liveness
-        FEATURES['valence']= valence
-        FEATURES['loudness']= loudness
-        FEATURES['speechiness']= speechiness
-        FEATURES['tempo']= tempo
-        FEATURES['key']= key
-        FEATURES['time_signature']= time_signature
-
-        return FEATURES 
+        return {
+            'id': ids,
+            'name': name,
+            'artist': artist,
+            'album': album,
+            'release_date': release_date,
+            'popularity': popularity,
+            'length': length,
+            'acousticness': acousticness,
+            'danceability': danceability,
+            'energy': energy,
+            'instrumentalness': instrumentalness,
+            'liveness': liveness,
+            'valence': valence,
+            'loudness': loudness,
+            'speechiness': speechiness,
+            'tempo': tempo,
+            'key': key,
+            'time_signature': time_signature,
+        } 
 
     def get_playlist_information(self,playlist_id):
         """
@@ -177,11 +167,10 @@ class SpotiScienceDownloader():
         """
         if "https" in playlist_id:
             playlist_id = self.__inner__clean_spotify_id(playlist_id)
-       
+
         sp = self.__inner__auth_spotify_user_music(self.scope_playlist)
 
-        playlist_info = sp.playlist_tracks(playlist_id)
-        return playlist_info
+        return sp.playlist_tracks(playlist_id)
         
     def get_albums_song_features(self,id,is_artist=False):
         """
@@ -199,7 +188,7 @@ class SpotiScienceDownloader():
         if type(id) == str:
             album_ids = [id]
             album_ids = [self.__inner__clean_spotify_id(ids) if "https" in ids else ids for ids in album_ids]
-        
+
         if is_artist:
             try:
                 artist_id = self.__inner__clean_spotify_id(id)
@@ -211,8 +200,7 @@ class SpotiScienceDownloader():
             album_ids = id
             album_ids = [self.__inner__clean_spotify_id(ids) if "https" in ids else ids for ids in album_ids]
 
-        for i,album in enumerate(album_ids):
-
+        for album in album_ids:
             song_ids = self.__inner__get_album_songs_id(album)
             time.sleep(.6)
 
@@ -246,22 +234,18 @@ class SpotiScienceDownloader():
 
         if n_songs < 100:
             playlist = sp.playlist_tracks(playlist_id,limit=n_songs)
-            for songs in playlist['items']:
-                songs_ids.append(songs['track']['id'])
-
+            songs_ids.extend(songs['track']['id'] for songs in playlist['items'])
         if n_songs >= 100:
             for i in range(0,n_songs,100):
                 playlist = sp.playlist_tracks(playlist_id,limit=100,offset=i)
-                for songs in playlist['items']:
-                    songs_ids.append(songs['track']['id'])
-
+                songs_ids.extend(songs['track']['id'] for songs in playlist['items'])
         for song in songs_ids:
             time.sleep(.6)
             song_features = self.get_song_features(song)
             PLAYLISTS[playlist_info['name']].append(song_features)
 
         print(f"Playlist {playlist_info['name']} downloaded!")
-            
+
         return PLAYLISTS
 
     def get_song_music_genre(self,song_id):
@@ -273,18 +257,14 @@ class SpotiScienceDownloader():
         """
         if "https" in song_id:
             song_id = self.__inner__clean_spotify_id(song_id)
-        
+
         sp = self.__inner__auth_spotify_music()
 
         song = sp.track(song_id)
         album = sp.album(song['album']['id'])
         artist = sp.artist(song['artists'][0]['id'])
 
-        if len(album['genres'])<1:
-            genre = artist['genres']
-        else:
-            genre = album['genres']
-        return genre
+        return artist['genres'] if len(album['genres'])<1 else album['genres']
 
     def get_song_lyrics(self,songname,artistname):
         """
